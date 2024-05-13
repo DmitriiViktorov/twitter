@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import func
 from sqlalchemy.future import select
 from models import User, Post
-from app import get_user_and_tweet, get_user_by_filter
+from app import _get_user_and_tweet, _get_user_by_filter
 from fastapi import HTTPException
 from typing import Tuple
 from .conftest import correct_response

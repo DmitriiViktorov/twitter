@@ -21,7 +21,7 @@ from init_db import create_db
 
 
 @asynccontextmanager
-async def lifespan(application: FastAPI):
+async def lifespan(_application: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all, checkfirst=True)
     await create_db(SessionLocal())
@@ -38,45 +38,43 @@ async def get_db() -> AsyncSession:
         yield db
 
 
-async def get_user_and_tweet(tweet_id: int, user_api_key: str, db: AsyncSession) -> Tuple[User, Post]:
+async def _get_user_and_tweet(tweet_id: int, user_api_key: str, db: AsyncSession) -> Tuple[User, Post]:
 
-    current_user = await get_user_by_filter(db=db, api_key=user_api_key)
+    current_user = await _get_user_by_filter(db=db, api_key=user_api_key)
 
     query_tweet = select(Post).filter_by(id=tweet_id)
     tweet = await db.execute(query_tweet)
     current_tweet = tweet.unique().scalar_one_or_none()
 
-    if current_tweet is None:
+    if not current_tweet:
         raise HTTPException(status_code=404, detail="Tweet not found")
 
     return current_user, current_tweet
 
 
-async def get_user_by_filter(db: AsyncSession, api_key: str = None, user_id: int = None):
+async def _get_user_by_filter(db: AsyncSession, api_key: str = None, user_id: int = None):
     filters = []
 
-    filters.append(User.api_key == api_key) if api_key else filters.append(User.id == user_id)
-    query = select(User).options(joinedload(User.followers), joinedload(User.followings))
-    query = query.filter(*filters)
+    filters.append(User.api_key == api_key) if api_key else filters.append(User.id == user_id) #REVIEW А если и то и то?
+    query = select(User).options(joinedload(User.followers), joinedload(User.followings)).filter(*filters)
     result = await db.execute(query)
 
     user = result.unique().scalar_one_or_none()
 
-    if user is None:
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
 
-async def get_followers(db: AsyncSession, follower_id: int, current_user_api_key: str = None) -> Tuple[User, User]:
-    current_user = await get_user_by_filter(db=db, api_key=current_user_api_key)
-    follower = await get_user_by_filter(db=db, user_id=follower_id)
+async def _get_followers(db: AsyncSession, follower_id: int, current_user_api_key: str = None) -> Tuple[User, User]:
+    current_user = await _get_user_by_filter(db=db, api_key=current_user_api_key)
+    follower = await _get_user_by_filter(db=db, user_id=follower_id)
     return current_user, follower
 
 
-async def get_and_formatted_user(db: AsyncSession, api_key: Optional[str] = None, user_id: Optional[int] = None):
-    user = await get_user_by_filter(db=db, api_key=api_key, user_id=user_id)
-    user_formatted_data = user.formatted_data
-    return user_formatted_data
+async def _get_and_formatted_user(db: AsyncSession, api_key: Optional[str] = None, user_id: Optional[int] = None):
+    user = await _get_user_by_filter(db=db, api_key=api_key, user_id=user_id)
+    return user.formatted_data
 
 
 @app.get("/api/tweets", response_model=PostResponse, )
@@ -98,18 +96,18 @@ async def read_tweets(db: AsyncSession = Depends(get_db)):
 @app.get("/api/users/me", response_model=UserResponse)
 async def read_me(api_key: str = Header('api-key'), db: AsyncSession = Depends(get_db)):
 
-    current_user = await get_and_formatted_user(db=db, api_key=api_key)
+    current_user = await _get_and_formatted_user(db=db, api_key=api_key)
     return {'result': True, 'user': current_user}
 
 
 @app.get("/api/users/{id}")
 async def read_user(id: int, db: AsyncSession = Depends(get_db)):
 
-    user_by_id = await get_and_formatted_user(db=db, user_id=id)
+    user_by_id = await _get_and_formatted_user(db=db, user_id=id)
     return {'result': True, 'user': user_by_id}
 
 
-@app.post("/api/medias")
+@app.post("/api/medias") # medias нет такого слова в английском языке
 async def upload_media(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
     if not os.path.exists("media"):
         os.makedirs("media")
@@ -156,7 +154,7 @@ async def create_tweet(request: Request, api_key: str = Header('api-key'), db: A
 
 @app.delete("/api/tweets/{id}")
 async def delete_tweet(id: int, api_key: str = Header('api-key'), db: AsyncSession = Depends(get_db)):
-    current_user, current_tweet = await get_user_and_tweet(tweet_id=id, user_api_key=api_key, db=db)
+    current_user, current_tweet = await _get_user_and_tweet(tweet_id=id, user_api_key=api_key, db=db)
 
     if current_tweet.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -170,27 +168,27 @@ async def delete_tweet(id: int, api_key: str = Header('api-key'), db: AsyncSessi
 @app.post("/api/tweets/{id}/likes")
 async def like_tweet(id: int, api_key: str = Header('api-key'), db: AsyncSession = Depends(get_db)):
 
-    current_user, current_tweet = await get_user_and_tweet(tweet_id=id, user_api_key=api_key, db=db)
+    current_user, current_tweet = await _get_user_and_tweet(tweet_id=id, user_api_key=api_key, db=db)
 
     try:
         like = Like(user_id=current_user.id, post_id=current_tweet.id)
-        db.add(like)
+        db.add(like) # нужен ли тут await?
         await db.commit()
         await db.invalidate()
         return {'result': True}
 
     except IntegrityError:
-        raise HTTPException(status_code=404, detail="You have already liked this tweet")
+        raise HTTPException(status_code=400, detail="You have already liked this tweet")
 
 
 @app.delete("/api/tweets/{id}/likes")
-async def like_tweet(id: int, api_key: str = Header('api-key'), db: AsyncSession = Depends(get_db)):
-    current_user, current_tweet = await get_user_and_tweet(tweet_id=id, user_api_key=api_key, db=db)
+async def unlike_tweet(id: int, api_key: str = Header('api-key'), db: AsyncSession = Depends(get_db)):
+    current_user, current_tweet = await _get_user_and_tweet(tweet_id=id, user_api_key=api_key, db=db)
 
     query = select(Like).filter_by(user_id=current_user.id, post_id=current_tweet.id)
     like = await db.execute(query)
     current_like = like.unique().scalar_one_or_none()
-    if current_like is None:
+    if not current_like:
         raise HTTPException(status_code=404, detail="Like not found")
 
     await db.delete(current_like)
@@ -201,7 +199,7 @@ async def like_tweet(id: int, api_key: str = Header('api-key'), db: AsyncSession
 
 @app.post("/api/users/{id}/follow")
 async def follow(id: int, api_key: str = Header('api-key'), db: AsyncSession = Depends(get_db)):
-    current_user, follower = await get_followers(db=db, current_user_api_key=api_key, follower_id=id)
+    current_user, follower = await _get_followers(db=db, current_user_api_key=api_key, follower_id=id)
     subscription = Subscription(follower_id=current_user.id, following_id=follower.id)
 
     try:
@@ -217,7 +215,7 @@ async def follow(id: int, api_key: str = Header('api-key'), db: AsyncSession = D
 
 @app.delete("/api/users/{id}/follow")
 async def unfollow(id: int, api_key: str = Header('api-key'), db: AsyncSession = Depends(get_db)):
-    current_user, follower = await get_followers(db=db, current_user_api_key=api_key, follower_id=id)
+    current_user, follower = await _get_followers(db=db, current_user_api_key=api_key, follower_id=id)
     query = select(Subscription).filter_by(follower_id=current_user.id, following_id=follower.id)
     subscription = await db.execute(query)
     current_subscription = subscription.unique().scalar_one_or_none()
