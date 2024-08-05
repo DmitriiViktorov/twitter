@@ -1,23 +1,10 @@
 import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 from httpx import AsyncClient, ASGITransport
-
-from app import app, get_db
-from database import Base
-from models import User
+from app import app
+from database import Base, engine, SessionLocal as async_session
 from init_db import create_db as create_test_db
-
-
-DATABASE_URL = "postgresql+asyncpg://example:example@localhost:5433/example_test"
-engine = create_async_engine(DATABASE_URL, echo=False)
-async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-
-
-async def override_get_db() -> AsyncSession:
-    async with async_session() as db:
-        yield db
-
-app.dependency_overrides[get_db] = override_get_db
+from models import User
 
 
 @pytest.fixture

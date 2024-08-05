@@ -35,10 +35,18 @@ async def test_get_current_user(async_app_client):
 
 @pytest.mark.asyncio
 async def test_fail_get_unauthorized_user(async_app_client):
-    header = {'api-key': ""}
+    header = {'api-key': "abcd"}
     response = await async_app_client.get("/api/users/me", headers=header)
     assert response.status_code == 404
     assert 'detail' in response.json() and response.json()['detail'] == 'User not found'
+
+
+@pytest.mark.asyncio
+async def test_fail_get_user_without_key(async_app_client):
+    header = {'api-key': ""}
+    response = await async_app_client.get("/api/users/me", headers=header)
+    assert response.status_code == 400
+    assert 'detail' in response.json() and response.json()['detail'] == 'API key header missing'
 
 
 @pytest.mark.asyncio
@@ -205,7 +213,7 @@ async def test_delete_follow_user(async_app_client, db_session, add_new_user):
 
 
 @pytest.mark.asyncio
-async def test_delete_follow_user(async_app_client, db_session, add_new_user):
+async def test_delete_missing_follow_user(async_app_client, db_session, add_new_user):
     header, new_user_id = add_new_user
     delete_follower = await async_app_client.delete(f"/api/users/{new_user_id}/follow", headers=header)
     assert delete_follower.status_code == 404

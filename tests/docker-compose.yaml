@@ -3,9 +3,9 @@ services:
   db:
     image: postgres:13
     restart: always
+    env_file:
+      - .env
     environment:
-      POSTGRES_PASSWORD: example
-      POSTGRES_USER: example
-      POSTGRES_DB: example_test
+      POSTGRES_DB: test
     ports:
       - "5433:5432"
