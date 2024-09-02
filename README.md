@@ -37,10 +37,10 @@
    После клонирования репозитория в корневой директории проекта необходимо создать 
    .env файл и указать там следующие типы настроек:
 
-   - POSTGRES_USER - имя пользователя для для взаимодействия с СУБД
+   - POSTGRES_USER - имя пользователя для взаимодействия с СУБД
    - POSTGRES_PASSWORD - пароль для этого пользователя
    - DATABASE_URL_DEBUG - адрес для подключения к базе данных, должна иметь вид:
-     - "postgresql+asyncpg://<POSTGRES_USER>:<POSTGRES_USER>@postgres:<PORT>/<DB_NAME>>"
+     - "postgresql+asyncpg://<POSTGRES_USER>:<POSTGRES_PASSWORD>@postgres:<PORT>/<DB_NAME>>"
    - ECHO - True/False - параметр для отображения в логах текстов запросов кк БД
    
 3. **Запуск сервиса**
