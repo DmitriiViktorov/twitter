@@ -29,7 +29,7 @@
    
    Для установки необходимо клонировать репозиторий с помощью следующей команды:
    ```bash
-   git clone git@gitlab.skillbox.ru:dmitrii_viktorov/python_advanced_diploma.git
+   git clone https://github.com/DmitriiViktorov/twitter.git
     ```
 
 2. **Создание .env файла**
