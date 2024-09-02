@@ -32,7 +32,15 @@
    git clone https://github.com/DmitriiViktorov/twitter.git
     ```
 
-2. **Создание .env файла**
+2. **Установка зависимостей**
+   
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # Для Windows используйте venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Создание .env файла**
 
    После клонирования репозитория в корневой директории проекта необходимо создать 
    .env файл и указать там следующие типы настроек:
@@ -43,14 +51,14 @@
      - "postgresql+asyncpg://<POSTGRES_USER>:<POSTGRES_PASSWORD>@postgres:<PORT>/<DB_NAME>>"
    - ECHO - True/False - параметр для отображения в логах текстов запросов кк БД
    
-3. **Запуск сервиса**
+4. **Запуск сервиса**
    
     После перехода в корневую директорию проекта запустите сервис с помощью Docker Compose:
     ```bash
     docker-compose up
     ```
 
-4. **Доступ к приложению**
+5. **Доступ к приложению**
 
     После успешного запуска сервис будет доступен по адресу http://localhost.
 
