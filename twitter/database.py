@@ -8,7 +8,13 @@ def get_database_url():
     if os.environ.get("ENV") == "test":
         return os.getenv("DATABASE_URL_TEST")
     elif os.environ.get("ENV") == "debug":
-        return os.getenv("DATABASE_URL_DEBUG")
+        user = os.getenv("POSTGRES_USER")
+        password = os.getenv("POSTGRES_PASSWORD")
+        host = os.getenv("POSTGRES_HOST")
+        port = os.getenv("POSTGRES_PORT")
+        db = os.getenv("POSTGRES_DB")
+        database_url_debug = f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}"
+        return database_url_debug
     else:
         return os.getenv("DATABASE_URL")
 
